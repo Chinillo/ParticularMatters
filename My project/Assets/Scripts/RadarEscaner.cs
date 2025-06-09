@@ -1,57 +1,67 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RadarEscaner : MonoBehaviour
 {
-    public ParticleSystem sistemaParticulas; // Sistema de partículas del radar
-    public float radioExplosión = 5f;       // Radio de la explosión de partículas
-    public float cooldownRadar = 10f;      // Tiempo de espera entre usos del radar
-    public float tiempoDesaparicion = 2f;  // Tiempo antes de que las partículas desaparezcan
+    public ParticleSystem sistemaParticulas;
+    public ParticleSystem subEmisor; // Asigna el sistema de partículas del sub-emisor en el Inspector
+    public float cooldownRadar = 10f;
+    public float tiempoDesaparicion = 2f;
 
-    private float tiempoUltimoUso = -10f;  // Registro del último uso del radar
-    private ParticleSystem.Particle[] particulas; // Array para manejar las partículas
+    private float tiempoUltimoUso = -10f;
+    private List<ParticleCollisionEvent> collisionEvents;
+
+    void Start()
+    {
+        sistemaParticulas.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        collisionEvents = new List<ParticleCollisionEvent>();
+    }
 
     void Update()
     {
-        // Activar el radar con la tecla "E"
         if (Input.GetKeyDown(KeyCode.E) && Time.time >= tiempoUltimoUso + cooldownRadar)
         {
             ActivarRadar();
-            tiempoUltimoUso = Time.time; // Actualizamos el tiempo del último uso
+            tiempoUltimoUso = Time.time;
         }
     }
 
     void ActivarRadar()
     {
-        // Emitimos las partículas
-        sistemaParticulas.transform.position = transform.position; // Posicionamos el sistema de partículas en el jugador
+        sistemaParticulas.transform.position = transform.position;
+        sistemaParticulas.transform.rotation = Quaternion.identity;
         sistemaParticulas.Play();
+        Invoke(nameof(DesaparecerParticulas), tiempoDesaparicion);
     }
 
     void OnParticleCollision(GameObject other)
     {
-        // Detectamos el objeto con el que colisionó la partícula
-        if (other.CompareTag("Maquina"))
-        {
-            CambiarColorParticulas(Color.gray);
-        }
-        else if (other.CompareTag("Enemigo"))
-        {
-            CambiarColorParticulas(Color.red);
-        }
+        if (collisionEvents == null)
+            collisionEvents = new List<ParticleCollisionEvent>();
+        else
+            collisionEvents.Clear();
+
+        int numCollisionEvents = sistemaParticulas.GetCollisionEvents(other, collisionEvents);
+
+        Color colorColision = Color.magenta;
+        if (other.CompareTag("Enemigo"))
+            colorColision = Color.red;
+        else if (other.CompareTag("Maquina"))
+            colorColision = Color.yellow;
         else if (other.CompareTag("Piso"))
+            colorColision = Color.white;
+
+        for (int i = 0; i < numCollisionEvents; i++)
         {
-            CambiarColorParticulas(Color.white);
+            Vector3 colPos = collisionEvents[i].intersection;
+
+            // Emitimos una partícula en el punto de colisión con el color deseado
+            var emitParams = new ParticleSystem.EmitParams();
+            emitParams.position = colPos;
+            emitParams.startColor = colorColision;
+            emitParams.startSize = 0.3f; // Ajusta el tamaño del punto
+            subEmisor.Emit(emitParams, 1);
         }
-    }
-
-    void CambiarColorParticulas(Color color)
-    {
-        // Cambiamos el color de las partículas al colisionar
-        var main = sistemaParticulas.main;
-        main.startColor = color;
-
-        // Configuramos un tiempo para que las partículas desaparezcan
-        Invoke(nameof(DesaparecerParticulas), tiempoDesaparicion);
     }
 
     void DesaparecerParticulas()
