@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class RadarEscaner : MonoBehaviour
 {
     public ParticleSystem sistemaParticulas;
-    public ParticleSystem subEmisor; // Asigna el sistema de partículas del sub-emisor en el Inspector
+    public ParticleSystem subEmisor; // Asignar el sistema de partículas del sub-emisor en el Inspector
     public float cooldownRadar = 10f;
     public float tiempoDesaparicion = 2f;
 
@@ -55,11 +56,11 @@ public class RadarEscaner : MonoBehaviour
         {
             Vector3 colPos = collisionEvents[i].intersection;
 
-            // Emitimos una partícula en el punto de colisión con el color deseado
+            // Emite una partícula en el punto de colisión con el color deseado
             var emitParams = new ParticleSystem.EmitParams();
             emitParams.position = colPos;
             emitParams.startColor = colorColision;
-            emitParams.startSize = 0.3f; // Ajusta el tamaño del punto
+            emitParams.startSize = 1f; // Ajusta el tamaño del punto
             subEmisor.Emit(emitParams, 1);
         }
     }
